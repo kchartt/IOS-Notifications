@@ -9,20 +9,15 @@ import Foundation
 import NotificationCenter
 
 @MainActor
-class NotificationManager: NSObject ,ObservableObject, UNUserNotificationCenterDelegate {
+class NotificationManager: NSObject ,ObservableObject {
     let notificationCenter = UNUserNotificationCenter.current()
     @Published var isGranted: Bool = false
     @Published var pendingRequests: [UNNotificationRequest] = []
+    @Published var nextView: NextView?
     
     override init() {
         super.init()
         notificationCenter.delegate = self
-    }
-    
-    ///Delegate Function - Presnet notifications in foreground(Whilst app is still running)
-    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notifucation: UNNotification) async -> UNNotificationPresentationOptions {
-        await getPendingRequest()
-        return [.sound, .banner]
     }
     
     ///Request notification permissions
@@ -53,6 +48,23 @@ class NotificationManager: NSObject ,ObservableObject, UNUserNotificationCenterD
         let content = UNMutableNotificationContent()
         content.title = notification.title
         content.body = notification.body
+        
+        if let subtitle = notification.subtitle {
+            content.subtitle = subtitle
+        }
+        
+        if let bundleImageName = notification.bundleImageName {
+            if let url = Bundle.main.url(forResource: bundleImageName, withExtension: "") {
+                if let attachment = try? UNNotificationAttachment(identifier: bundleImageName, url: url) {
+                    content.attachments = [attachment]
+                }
+            }
+        }
+        
+        if let userInfo = notification.userInfo {
+            content.userInfo = userInfo
+        }
+        
         content.sound = .default
         
         if notification.scheduleType == .time {
@@ -86,5 +98,23 @@ class NotificationManager: NSObject ,ObservableObject, UNUserNotificationCenterD
     func clearRequests() {
         notificationCenter.removeAllPendingNotificationRequests()
         pendingRequests.removeAll()
+    }
+}
+
+///NotificationManager delegate extension
+extension NotificationManager: UNUserNotificationCenterDelegate {
+    
+    ///Delegate Function - Preset notifications in foreground(Whilst app is still running)
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notifucation: UNNotification) async -> UNNotificationPresentationOptions {
+        await getPendingRequest()
+        return [.sound, .banner]
+    }
+    
+    ///Delegate Function - Respond to user interaction to the notification
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        // Getting the value of the key, and returning the required view
+        if let value = response.notification.request.content.userInfo["nextValue"] as? String {
+            nextView = NextView(rawValue: value)
+        }
     }
 }

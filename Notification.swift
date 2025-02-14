@@ -40,6 +40,10 @@ struct Notification {
     var identifier: String
     var scheduleType: ScheduleType
     var title: String
+    var subtitle: String?
+    var bundleImageName: String?
+    // Optional dictonary
+    var userInfo: [AnyHashable : Any]?
     var body: String
     var timeInterval: Double?
     var dateComponents: DateComponents?

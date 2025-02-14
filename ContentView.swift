@@ -40,12 +40,18 @@ struct ContentView: View {
                 }
                 Button("Send Notification") {
                     Task {
-                        let notification = Notification(
+                        var notification = Notification(
                             identifier: UUID().uuidString, title: "Testing Notification",
                             body: "Hello world i'm a notification",
                             timeInterval: 10,
                             repeats: false)
                         
+                        // Items that are not in the init methods on notification need to be added as so
+                        notification.subtitle = "This is a notification subtitle"
+//                        notification.bundleImageName = "imageName"
+                        
+                        // Setting a key value pair for the interaction function to check to display a certain view. 
+                        notification.userInfo = ["nextView" : NextView.promo.rawValue]
                         await nManager.schedule(notification: notification)
                     }
                 }
@@ -57,6 +63,10 @@ struct ContentView: View {
                     }
                 }
             }
+            .sheet(item: $nManager.nextView, content: { nextView in
+                //Returning the view function in a sheet
+                nextView.view()
+            })
         }
         .onChange(of: scenePhase) { oldValue, newValue in
             if newValue == .active {
